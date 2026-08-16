@@ -1,0 +1,9 @@
+**/node_modules
+**/dist
+**/__pycache__
+**/*.pyc
+backend/attendance.db
+backend/app/static/enrollments/*
+!backend/app/static/enrollments/.gitkeep
+.git
+*.md

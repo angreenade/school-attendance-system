@@ -3,6 +3,7 @@
 # recognition model is ~37MB, too large to ship inside the project zip, so
 # it's fetched here instead. Safe to re-run.
 set -e
+mkdir -p "$(dirname "$0")/app/ml_models"
 cd "$(dirname "$0")/app/ml_models"
 
 fetch() {

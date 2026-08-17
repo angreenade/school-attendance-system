@@ -9,11 +9,21 @@ COPY frontend/ ./
 # face-api.js's tiny face detector model (used client-side purely for the
 # live camera box-drawing UX) is a binary file kept out of git history;
 # fetch it at build time instead, straight into the public/ dir Vite copies as-is.
+# `-f` makes curl fail the build on a non-2xx response instead of writing an
+# error page to disk, and the explicit size check catches the case where
+# GitHub serves a "successful" but empty/truncated response (this exact
+# combo silently shipped a 0-byte model file once already - the build
+# "succeeded" but the kiosk page hung forever on "Loading face tracking...").
+# Both files live at the plain raw.githubusercontent.com path, NOT the LFS
+# media.githubusercontent.com/media/... path - this file isn't Git-LFS
+# tracked in the upstream repo, so that LFS URL 404s.
 RUN mkdir -p public/models && \
-    curl -sL -A "Mozilla/5.0" -o public/models/tiny_face_detector_model-weights_manifest.json \
+    curl -sL -f -A "Mozilla/5.0" -o public/models/tiny_face_detector_model-weights_manifest.json \
       "https://raw.githubusercontent.com/vladmandic/face-api/master/model/tiny_face_detector_model-weights_manifest.json" && \
-    curl -sL -A "Mozilla/5.0" -o public/models/tiny_face_detector_model.bin \
-      "https://media.githubusercontent.com/media/vladmandic/face-api/master/model/tiny_face_detector_model.bin"
+    curl -sL -f -A "Mozilla/5.0" -o public/models/tiny_face_detector_model.bin \
+      "https://raw.githubusercontent.com/vladmandic/face-api/master/model/tiny_face_detector_model.bin" && \
+    test $(stat -c%s public/models/tiny_face_detector_model-weights_manifest.json) -ge 500 && \
+    test $(stat -c%s public/models/tiny_face_detector_model.bin) -ge 100000
 
 RUN npm run build
 

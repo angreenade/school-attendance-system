@@ -20,6 +20,7 @@ export default function Kiosk() {
   const captureCanvasRef = useRef<HTMLCanvasElement>(document.createElement("canvas"));
 
   const [modelsReady, setModelsReady] = useState(false);
+  const [modelsError, setModelsError] = useState<string | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [location, setLocation] = useState<KioskLocation | null>(() => {
     const stored = localStorage.getItem("kiosk_location");
@@ -35,7 +36,19 @@ export default function Kiosk() {
 
   // ---- Load face-api models once ----
   useEffect(() => {
-    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL).then(() => setModelsReady(true));
+    faceapi.nets.tinyFaceDetector
+      .loadFromUri(MODEL_URL)
+      .then(() => setModelsReady(true))
+      .catch((err) => {
+        // Without this .catch, a failed/corrupt model file left this screen
+        // stuck on "Loading face tracking..." forever with no explanation.
+        console.error("Failed to load face-tracking models:", err);
+        setModelsError(
+          "Could not load the face-tracking models. Try reloading this page; " +
+            "if it keeps happening, the model files on the server may be missing " +
+            "or corrupted - contact an admin."
+        );
+      });
   }, []);
 
   // ---- Fetch locations if this kiosk hasn't been configured yet ----
@@ -183,7 +196,8 @@ export default function Kiosk() {
         )}
 
         {cameraError && <div className="camera-error">{cameraError}</div>}
-        {!modelsReady && !cameraError && <div className="camera-loading">Loading face tracking...</div>}
+        {modelsError && !cameraError && <div className="camera-error">{modelsError}</div>}
+        {!modelsReady && !modelsError && !cameraError && <div className="camera-loading">Loading face tracking...</div>}
 
         {feedback && (
           <div className={`scan-feedback ${feedback.matched ? (feedback.duplicate ? "info" : "success") : "warn"}`}>
